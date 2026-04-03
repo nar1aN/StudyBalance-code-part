@@ -5,7 +5,7 @@ StudyBalance is a web app for students (school, college, and university) and any
 
 Created by nar1aN (Max N.)
 
-[Read more about StudyBalance](https://github.com/nar1aN/StudyBalance-webapp/blob/main/mnechesov_application.md)
+[Read more about StudyBalance (RU)](https://github.com/nar1aN/StudyBalance-webapp/blob/main/mnechesov_application.md)
 
 ---
 
