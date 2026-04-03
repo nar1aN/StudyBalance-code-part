@@ -69,4 +69,4 @@ class Task(Base):
 
     owner = relationship("User", back_populates="tasks")
     subject = relationship("Subject", back_populates="tasks")
-    priority = Column(Enum(PriorityLevel), default = PriorityLevel.medium)
+    priority = Column(String(10), default="medium", nullable=False)

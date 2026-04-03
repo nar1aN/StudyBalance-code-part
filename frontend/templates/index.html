@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StudyBalance</title>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;900&family=Onest:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=pNNdniO5Gm0b1qxfKlHujQDRVrOBADnhh2ZfFZABQgti8JEbW6cirUqr33a4e_3HPDSAeyNR4ZIC0yYi-eTRGkwJ6M5joECn7x4cCqgPqtjip9f7tyrP7iPr1PmKcqeCL1hUdy_4d80db1PB0K9JQpWBD0-QzYChZsihuK0v1qOkivepgCPD3JRuKag2pSDaeeQ5LdG6ZifqR6pm1NqbqZBCeNxDZpxOBewmGgteZ43RGLDrwC9T6zwh4gYtK3Qc3WololyQvoQEUvcfXuaZwA" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="https://gc.kis.v2.scr.kaspersky-labs.com/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9jaGF0Z3B0LmNvbS9iYWNrZW5kLWFwaS9lc3R1YXJ5L2NvbnRlbnQ_aWQ9ZmlsZV8wMDAwMDAwMGVjODA3MjBhOTRkNzAwN2FmYmYyOTVmYSZ0cz00OTI4NzkmcD1mcyZjaWQ9MSZzaWc9ZDRjM2FhNWEwMzA0ODIwZDdmNTBmMmRhNGYyMmIwNzMxZGZmN2FiOGY0YTk1MzA4OGJkODcxODMyZGQ2ZDUzYiZ2PTA"/><script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
 :root{
@@ -102,6 +102,20 @@ select option{background:var(--bg3)}
 .subj-btn:hover{background:rgba(124,106,247,.08);color:var(--text)}
 .subj-btn.active{color:var(--text)}
 .subj-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.left-nav-badge.red{background:rgba(255,91,121,.15);color:var(--danger)}
+.task-item.overdue-item{border-left:3px solid var(--danger);padding-left:9px}
+.priority-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
+.chart-insight{font-size:12px;color:var(--text2);margin-bottom:12px;padding:8px 10px;background:var(--bg3);border-radius:8px;line-height:1.5}
+.reco-card{background:linear-gradient(135deg,rgba(124,106,247,.08),rgba(92,224,216,.05));border:1px solid rgba(124,106,247,.2);border-radius:14px;padding:18px;margin-bottom:22px}
+.reco-title{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.reco-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(42,51,86,.4);font-size:13px;color:var(--text2);line-height:1.5}
+.reco-item:last-child{border-bottom:none}
+.reco-icon{flex-shrink:0;font-size:15px}
+.overdue-section{background:rgba(255,91,121,.05);border:1px solid rgba(255,91,121,.15);border-radius:14px;padding:16px;margin-bottom:22px}
+.overdue-title{font-size:13px;font-weight:700;color:var(--danger);margin-bottom:12px}
+.stat-card.cd::before{background:var(--danger)}
+.dp-btn.free{border-color:rgba(82,217,138,.4)}
+
 
 /* RIGHT PANEL (content) */
 .right-panel{flex:1;overflow-y:auto;background:var(--bg)}
@@ -366,6 +380,10 @@ input[type=color]{width:40px;height:34px;padding:2px;cursor:pointer;border-radiu
         <span class="left-nav-icon">📆</span> Следующие 7 дней
         <span class="left-nav-badge" v-if="weekTasks.filter(t=>!t.is_completed).length">{{weekTasks.filter(t=>!t.is_completed).length}}</span>
       </div>
+      <div class="left-nav-item" :class="{active:taskView==='overdue'}" @click="taskView='overdue'">
+        <span class="left-nav-icon">⚠️</span> Просроченные
+        <span class="left-nav-badge red" v-if="overdueTasks.length">{{overdueTasks.length}}</span>
+      </div>
       <div class="left-nav-item" :class="{active:taskView==='archive'}" @click="taskView='archive'">
         <span class="left-nav-icon">🗄</span> Архив
         <span class="left-nav-badge" v-if="archive.length">{{archive.length}}</span>
@@ -425,6 +443,7 @@ input[type=color]{width:40px;height:34px;padding:2px;cursor:pointer;border-radiu
               <div class="task-info">
                 <div class="task-title">{{t.title}}</div>
                 <div class="task-tags">
+                  <div class="priority-dot" :style="{background:priColor(t.priority)}" :title="priLabel(t.priority)"></div>
                   <span class="tag" :style="t.subject?`background:${t.subject.color}18;color:${t.subject.color}`:''">{{t.subject?t.subject.name:'Без предмета'}}</span>
                   <span class="tag" :class="typeClass(t.task_type)">{{TL[t.task_type]}}</span>
                   <span class="tag" :class="diffClass(t.difficulty)">{{DL[t.difficulty]}}</span>
@@ -466,6 +485,7 @@ input[type=color]{width:40px;height:34px;padding:2px;cursor:pointer;border-radiu
             <div class="task-info">
               <div class="task-title">{{t.title}}</div>
               <div class="task-tags">
+                <div class="priority-dot" :style="{background:priColor(t.priority)}"></div>
                 <span class="tag" :style="t.subject?`background:${t.subject.color}18;color:${t.subject.color}`:''">{{t.subject?t.subject.name:'Без предмета'}}</span>
                 <span class="tag" :class="typeClass(t.task_type)">{{TL[t.task_type]}}</span>
                 <span class="hbadge">{{t.estimated_hours}}ч</span>
@@ -556,13 +576,37 @@ input[type=color]{width:40px;height:34px;padding:2px;cursor:pointer;border-radiu
           <div class="stat-card ca"><div class="stat-val">{{wStats.total_tasks}}</div><div class="stat-lbl">Всего задач</div></div>
           <div class="stat-card cg"><div class="stat-val" style="color:var(--green)">{{wStats.completed_tasks}}</div><div class="stat-lbl">Выполнено</div></div>
           <div class="stat-card ct"><div class="stat-val" style="color:var(--accent2)">{{wStats.total_tasks-wStats.completed_tasks}}</div><div class="stat-lbl">Активных</div></div>
-          <div class="stat-card co"><div class="stat-val" style="color:var(--warn)">{{wStats.overloaded_days}}</div><div class="stat-lbl">Перегружено дней</div></div>
+          <div class="stat-card cd"><div class="stat-val" style="color:var(--danger)">{{overdueTasks.length}}</div><div class="stat-lbl">Просроченных</div></div>
+        </div>
+
+        <!-- Просроченные -->
+        <div v-if="overdueTasks.length" class="overdue-section">
+          <div class="overdue-title">⚠️ Просроченные задачи ({{overdueTasks.length}})</div>
+          <div v-for="t in overdueTasks.slice(0,5)" :key="t.id" class="task-item overdue-item" style="background:rgba(255,91,121,.04)">
+            <div class="task-check" @click.stop="toggleTask(t)"><span class="ck"></span></div>
+            <div class="task-info">
+              <div class="task-title">{{t.title}}</div>
+              <div class="task-tags">
+                <span class="tag" :style="t.subject?`background:${t.subject.color}18;color:${t.subject.color}`:''">{{t.subject?t.subject.name:'Без предмета'}}</span>
+                <span class="dl overdue">просрочено {{overdueAgo(t)}} дн.</span>
+              </div>
+            </div>
+            <button class="icon-btn" @click.stop="openXfer(t)" title="Перенести">📆</button>
+          </div>
+        </div>
+
+        <!-- Рекомендации -->
+        <div class="reco-card" v-if="recommendations.length">
+          <div class="reco-title">💡 Рекомендации</div>
+          <div v-for="r in recommendations" :key="r.text" class="reco-item">
+            <span class="reco-icon">{{r.icon}}</span><span>{{r.text}}</span>
+          </div>
         </div>
         <div class="charts-grid">
-          <div class="chart-card"><div class="chart-hdr"><div class="chart-lbl">Нагрузка по дням (ч)</div><span class="chart-dl" @click="dlChart('wc','load')">💾</span></div><div class="chart-wrap"><canvas ref="wc"></canvas></div></div>
-          <div class="chart-card"><div class="chart-hdr"><div class="chart-lbl">Задачи по предметам</div><span class="chart-dl" @click="dlChart('sc','subjects')">💾</span></div><div class="chart-wrap"><canvas ref="sc"></canvas></div></div>
-          <div class="chart-card"><div class="chart-hdr"><div class="chart-lbl">Выполнение</div><span class="chart-dl" @click="dlChart('dc','done')">💾</span></div><div class="chart-wrap"><canvas ref="dc"></canvas></div></div>
-          <div class="chart-card"><div class="chart-hdr"><div class="chart-lbl">Часы по предметам</div><span class="chart-dl" @click="dlChart('hc','hours')">💾</span></div><div class="chart-wrap"><canvas ref="hc"></canvas></div></div>
+          <div class="chart-card"><div class="chart-hdr"><div class="chart-lbl">Нагрузка по дням (ч)</div><span class="chart-dl" @click="dlChart('wc','load')">💾</span></div><div class="chart-insight" v-if="wStats">{{weekInsight}}</div><div class="chart-wrap"><canvas ref="wc"></canvas></div></div>
+          <div class="chart-card"><div class="chart-hdr"><div class="chart-lbl">Задачи по предметам</div><span class="chart-dl" @click="dlChart('sc','subjects')">💾</span></div><div class="chart-insight" v-if="subjStats.length">{{subjectInsight}}</div><div class="chart-wrap"><canvas ref="sc"></canvas></div></div>
+          <div class="chart-card"><div class="chart-hdr"><div class="chart-lbl">Выполнение задач</div><span class="chart-dl" @click="dlChart('dc','done')">💾</span></div><div class="chart-insight" v-if="wStats">{{completionInsight}}</div><div class="chart-wrap"><canvas ref="dc"></canvas></div></div>
+          <div class="chart-card"><div class="chart-hdr"><div class="chart-lbl">Часы по предметам</div><span class="chart-dl" @click="dlChart('hc','hours')">💾</span></div><div class="chart-insight" v-if="subjStats.length">{{hoursInsight}}</div><div class="chart-wrap"><canvas ref="hc"></canvas></div></div>
         </div>
       </div>
 
@@ -639,6 +683,7 @@ input[type=color]{width:40px;height:34px;padding:2px;cursor:pointer;border-radiu
       <div class="form-group"><label>Предмет</label><select v-model="tm.f.subject_id"><option :value="null">Без предмета</option><option v-for="s in subjects" :key="s.id" :value="s.id">{{s.name}}</option></select></div>
       <div class="form-group"><label>Тип</label><select v-model="tm.f.task_type"><option value="homework">Домашнее задание</option><option value="project">Проект</option><option value="test">Контрольная</option><option value="olympiad">Олимпиада</option><option value="section">Кружок</option><option value="other">Другое</option></select></div>
       <div class="form-group"><label>Сложность</label><select v-model="tm.f.difficulty"><option value="easy">Лёгкая</option><option value="medium">Средняя</option><option value="hard">Сложная</option></select></div>
+      <div class="form-group"><label>Приоритет</label><select v-model="tm.f.priority"><option value="low">🟢 Низкий</option><option value="medium">🟡 Средний</option><option value="high">🔴 Высокий</option></select></div>
       <div class="form-group"><label>Время (ч)</label><input type="number" v-model.number="tm.f.hours" min="0.5" max="12" step="0.5"></div>
     </div>
     <div class="form-group"><label>Дедлайн *</label><input type="datetime-local" v-model="tm.f.deadline" :class="{err:tm.e.deadline}"><div v-if="tm.e.deadline" class="field-error">{{tm.e.deadline}}</div></div>
@@ -652,9 +697,10 @@ input[type=color]{width:40px;height:34px;padding:2px;cursor:pointer;border-radiu
     <div class="modal-header"><div class="modal-title">Перенести задачу</div><button class="modal-close" @click="xfer.show=false">✕</button></div>
     <p style="font-size:14px;color:var(--text2);margin-bottom:4px">Задача: <strong style="color:var(--text)">{{xfer.task?.title}}</strong></p>
     <p style="font-size:12px;color:var(--text3);margin-bottom:4px">Перегруженные дни отмечены ⚡</p>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:4px">🟢 Свободный день · ⚡ Перегружен</p>
     <div class="day-pick">
-      <div v-for="d in xferDays" :key="d.date" class="dp-btn" :class="{selected:xfer.date===d.date,overloaded:d.is_overloaded}" @click="xfer.date=d.date">
-        <div class="dp-name">{{d.day_name}}</div><div class="dp-date">{{new Date(d.date+'T00:00:00').getDate()}}</div><div class="dp-hours">{{d.total_hours}}ч<span v-if="d.is_overloaded"> ⚡</span></div>
+      <div v-for="d in xferDays" :key="d.date" class="dp-btn" :class="{selected:xfer.date===d.date,overloaded:d.is_overloaded,free:d.total_hours===0}" @click="xfer.date=d.date">
+        <div class="dp-name">{{d.day_name}}</div><div class="dp-date">{{new Date(d.date+'T00:00:00').getDate()}}</div><div class="dp-hours">{{d.total_hours===0?'свободно':d.total_hours+'ч'}}<span v-if="d.is_overloaded"> ⚡</span></div>
       </div>
     </div>
     <div v-if="xfer.date&&xferDays.find(d=>d.date===xfer.date)?.is_overloaded" class="warn-box">⚠️ Выбранный день уже перегружен.</div>
@@ -835,9 +881,11 @@ createApp({
     const activeToday=computed(()=>todayTasks.value.filter(t=>!t.is_completed));
     const doneToday=computed(()=>todayTasks.value.filter(t=>t.is_completed));
 
+    const overdueTasks2=computed(()=>tasks.value.filter(t=>!t.is_completed&&new Date(t.deadline)<new Date()));
     const currentTasks=computed(()=>{
       if(taskView.value==='today')return todayTasks.value.filter(t=>!t.is_completed);
       if(taskView.value==='week')return weekTasks.value.filter(t=>!t.is_completed);
+      if(taskView.value==='overdue')return overdueTasks2.value;
       if(taskView.value==='archive')return archive.value;
       if(taskView.value==='all'){
         let r=[...tasks.value];
@@ -852,11 +900,11 @@ createApp({
     function vTask(f){const e={};if(!f.title||!f.title.trim())e.title='Введи название';if(!f.deadline)e.deadline='Укажи дедлайн';return e;}
 
     function openTM(task=null){
-      if(task){tm.value={show:true,id:task.id,e:{},f:{title:task.title,desc:task.description||'',task_type:task.task_type,difficulty:task.difficulty,deadline:task.deadline?task.deadline.slice(0,16):'',hours:task.estimated_hours,subject_id:task.subject?task.subject.id:null}};}
-      else{const d=new Date();d.setDate(d.getDate()+1);d.setHours(23,59,0,0);tm.value={show:true,id:null,e:{},f:{title:'',desc:'',task_type:'homework',difficulty:'medium',deadline:d.toISOString().slice(0,16),hours:1,subject_id:null}};}
+      if(task){tm.value={show:true,id:task.id,e:{},f:{title:task.title,desc:task.description||'',task_type:task.task_type,difficulty:task.difficulty,priority:task.priority||'medium',deadline:task.deadline?task.deadline.slice(0,16):'',hours:task.estimated_hours,subject_id:task.subject?task.subject.id:null}};}
+      else{const d=new Date();d.setDate(d.getDate()+1);d.setHours(23,59,0,0);tm.value={show:true,id:null,e:{},f:{title:'',desc:'',task_type:'homework',difficulty:'medium',priority:'medium',deadline:d.toISOString().slice(0,16),hours:1,subject_id:null}};}
     }
     async function saveTask(){const f=tm.value.f;const e=vTask(f);if(Object.keys(e).length){tm.value.e=e;return;}
-      try{const b={title:f.title,description:f.desc,task_type:f.task_type,difficulty:f.difficulty,deadline:new Date(f.deadline).toISOString(),estimated_hours:f.hours,subject_id:f.subject_id};
+      try{const b={title:f.title,description:f.desc,task_type:f.task_type,difficulty:f.difficulty,priority:f.priority||'medium',deadline:new Date(f.deadline).toISOString(),estimated_hours:f.hours,subject_id:f.subject_id};
         if(tm.value.id){await api('PUT',`/api/tasks/${tm.value.id}`,b);showT('Задача обновлена');}
         else{await api('POST','/api/tasks/',b);showT('Задача создана');}
         tm.value.show=false;await refresh();}catch(e){showT(e.message,'error');}}
@@ -880,7 +928,7 @@ createApp({
 
     function renderCharts(){if(!wStats.value)return;const sc2={x:{ticks:{color:'#8B93C4',font:{family:'Onest'}},grid:{color:'#2A3356'}},y:{ticks:{color:'#8B93C4',font:{family:'Onest'}},grid:{color:'#2A3356'}}};
       Object.values(CI).forEach(c=>c.destroy());CI={};
-      if(wc.value){const d=wStats.value.days;CI.wc=new Chart(wc.value,{type:'bar',data:{labels:d.map(d=>d.day_name),datasets:[{data:d.map(d=>d.total_hours),backgroundColor:d.map(d=>d.is_overloaded?'rgba(247,130,106,.75)':'rgba(124,106,247,.75)'),borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:sc2}});}
+      if(wc.value){const d=wStats.value.days;CI.wc=new Chart(wc.value,{type:'bar',data:{labels:d.map(d=>d.day_name),datasets:[{data:d.map(d=>d.total_hours),backgroundColor:d.map(d=>d.is_overloaded?'rgba(255,91,121,.75)':d.total_hours>2?'rgba(247,130,106,.65)':'rgba(82,217,138,.7)'),borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.raw}ч`}}},scales:sc2}});}
       if(sc.value&&subjStats.value.length){const s=subjStats.value;CI.sc=new Chart(sc.value,{type:'doughnut',data:{labels:s.map(x=>x.name),datasets:[{data:s.map(x=>x.total),backgroundColor:s.map(x=>x.color),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#8B93C4',font:{family:'Onest'},padding:10}}}}});}
       if(dc.value&&wStats.value){const done=wStats.value.completed_tasks,active=wStats.value.total_tasks-done;CI.dc=new Chart(dc.value,{type:'doughnut',data:{labels:['Выполнено','Активные'],datasets:[{data:[done,active],backgroundColor:['rgba(82,217,138,.8)','rgba(124,106,247,.5)'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#8B93C4',font:{family:'Onest'}}}}}});}
       if(hc.value&&subjStats.value.length){const s=subjStats.value.slice(0,8);CI.hc=new Chart(hc.value,{type:'bar',data:{labels:s.map(x=>x.name),datasets:[{data:s.map(x=>x.hours),backgroundColor:s.map(x=>x.color+'CC'),borderRadius:8,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:sc2}});}}
@@ -908,6 +956,59 @@ createApp({
     function typeClass(t){return TC[t]||'';}
     function diffClass(d){return DC2[d]||'';}
 
+    // Просроченные задачи
+    const overdueTasks=computed(()=>tasks.value.filter(t=>!t.is_completed&&new Date(t.deadline)<new Date()));
+
+    // Текущие задачи с поддержкой overdue
+    // patch currentTasks to include overdue
+    const _origCurrentTasks=currentTasks;
+
+    // Аналитические выводы
+    const weekInsight=computed(()=>{
+      if(!wStats.value)return'';
+      const d=wStats.value.days;const max=d.reduce((a,b)=>a.total_hours>b.total_hours?a:b,d[0]);
+      const overloaded=d.filter(x=>x.is_overloaded);
+      if(overloaded.length===0)return'✅ На этой неделе нет перегруженных дней.';
+      return`Самый загруженный день — ${max.day_name} (${max.total_hours}ч). Перегружено: ${overloaded.length} дн.`;
+    });
+    const subjectInsight=computed(()=>{
+      if(!subjStats.value.length)return'';
+      const top=subjStats.value.reduce((a,b)=>a.total>b.total?a:b);
+      return`Больше всего задач по предмету "${top.name}" — ${top.total} шт.`;
+    });
+    const completionInsight=computed(()=>{
+      if(!wStats.value)return'';
+      const total=wStats.value.total_tasks;const done=wStats.value.completed_tasks;
+      if(total===0)return'Задач пока нет.';
+      const pct=Math.round(done/total*100);
+      if(pct>=80)return`✅ Отличный результат: выполнено ${pct}% задач!`;
+      if(pct>=50)return`Выполнено ${pct}% задач. Продолжай в том же духе!`;
+      return`Выполнено ${pct}% задач — есть куда расти!`;
+    });
+    const hoursInsight=computed(()=>{
+      if(!subjStats.value.length)return'';
+      const top=subjStats.value.reduce((a,b)=>a.hours>b.hours?a:b);
+      return`Больше всего времени уходит на "${top.name}" — ${top.hours.toFixed(1)}ч.`;
+    });
+    const recommendations=computed(()=>{
+      const r=[];if(!wStats.value)return r;
+      const d=wStats.value.days;
+      const overloaded=d.filter(x=>x.is_overloaded);const free=d.filter(x=>x.total_hours===0);
+      if(overloaded.length>0&&free.length>0)r.push({icon:'📆',text:`Перегруз в ${overloaded.length} дн. Есть ${free.length} свободных дня — перенеси туда задачи.`});
+      if(overdueTasks.value.length>0)r.push({icon:'⏰',text:`${overdueTasks.value.length} задач просрочено. Реши или перенеси их как можно скорее.`});
+      const urgent=tasks.value.filter(t=>!t.is_completed&&(new Date(t.deadline)-new Date())/3600000<24&&new Date(t.deadline)>new Date());
+      if(urgent.length>0)r.push({icon:'🔥',text:`${urgent.length} задач с дедлайном в ближайшие 24 часа!`});
+      if(subjStats.value.length){const top=subjStats.value.reduce((a,b)=>a.total>b.total?a:b);r.push({icon:'📚',text:`По "${top.name}" больше всего задач на этой неделе.`});}
+      if(overloaded.length>0){const max=d.reduce((a,b)=>a.total_hours>b.total_hours?a:b,d[0]);r.push({icon:'💡',text:`В ${max.day_name} самая высокая нагрузка (${max.total_hours}ч). Попробуй перенести часть задач.`});}
+      return r.slice(0,4);
+    });
+
+    function isOverdue(t){return new Date(t.deadline)<new Date();}
+    function overdueAgo(t){return Math.floor((new Date()-new Date(t.deadline))/86400000);}
+    function priColor(p){if(p==='high')return'#FF5B79';if(p==='low')return'#52D98A';return'#F7C86A';}
+    function priLabel(p){const PL={low:'Низкий',medium:'Средний',high:'Высокий'};return PL[p]||'Средний';}
+    const PL={low:'Низкий',medium:'Средний',high:'Высокий'};
+
     watch(page,async val=>{if(val==='stats')await loadStats();});
     onMounted(async()=>{const s=localStorage.getItem('sb_cfg');if(s)try{Object.assign(cfg.value,JSON.parse(s));}catch{}if(token.value)await init();});
 
@@ -920,6 +1021,8 @@ createApp({
       activeToday,doneToday,showDone,cfg,toast,
       todayNum,todayWd,todayMon,todayH,pwPct,pwColor,pwLabel,
       calDate,calYear,calMonthName,calCells,
+      overdueTasks,weekInsight,subjectInsight,completionInsight,hoursInsight,recommendations,
+      isOverdue,overdueAgo,priColor,priLabel,PL,
       doLogin,doRegister,logout,goSubjects,finishSetup,
       openTM,saveTask,toggleTask,delTask,openXfer,doXfer,
       openSM,saveSubj,delSubj,doSearch,isToday,lc,fmtDL,dlClass,
